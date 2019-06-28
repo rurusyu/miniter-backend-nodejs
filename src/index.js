@@ -41,24 +41,28 @@ app.post('/signup', (req,res)=>{
     const sql ={user_id:user_id,user_pw:key, user_name:user_name,user_profile:user_profile};
     
     //id중복조회 후 없으면 삽입.
-    const selectQuery = connection.query('select user_id from users where user_id=?',[user_id],(err,rows)=>{
-        console.log(rows);
+    const selectQuery = connection.query('select user_id from users',(err,rows)=>{
         try{
-            if(rows.length === 0){
-                const query = connection.query('insert into users set ?',sql,(err,rows)=>{
-                    if(err){
-                        throw err;
-                    }else{
-                        res.json({message : '200 OK'})   //프론트로 뿌려줌.
-                    }
-                });
-            }else{
-                res.json({message : '400 Bad Request'}); 
-            }
+           //결과값을 배열로 가져오기때문에 체크해줘야함
+           for(let i=0; i<rows.length;i++){
+            if(user_id === rows[i].user_id){
+                console.log("싯파")
+                res.json({message : '400 Bad Request'}) 
+             // return res.redirect('/signup');   //get 방식으로 가져와버림.         
+             }
+         }
         }catch(err){
-            throw err;
+          throw err;                          
         }
-    });    
+    });
+    //회원가입
+    const query = connection.query('insert into users set ?',sql,(err,rows)=>{
+        if(err){
+            throw err;
+        }else{
+            res.json({message : '200 OK'})   //프론트로 뿌려줌.
+        }
+    });   
 })
 
 app.listen(9000,()=>{
