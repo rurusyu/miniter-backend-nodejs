@@ -4,7 +4,8 @@ const bodyParser = require('body-parser');
 const mysql = require('mysql');
 const cors = require('cors');  //npm install cors
 const crypto = require('crypto'); //암호화 내장모듈
-
+const bkfd2Pw = require('pbkdf2-password');
+const hash = bkfd2Pw();
 
 const connection = mysql.createConnection({
     host : 'localhost',
@@ -26,6 +27,7 @@ app.get('/signup', (req,res)=>{
     res.json({message : 'This is CORS-enabled for all origins!'});
 })
 
+//회원가입
 app.post('/signup', (req,res)=>{
     console.log('signup post ok!');
     const body=req.body;  //body는 {} front 쪽에서 header에 content-type 지정을 해주어야 정상적으로 데이터 찍힌다.
@@ -41,29 +43,57 @@ app.post('/signup', (req,res)=>{
     const sql ={user_id:user_id,user_pw:key, user_name:user_name,user_profile:user_profile};
     
     //id중복조회 후 없으면 삽입.
-    const selectQuery = connection.query('select user_id from users',(err,rows)=>{
-        try{
-           //결과값을 배열로 가져오기때문에 체크해줘야함
-           for(let i=0; i<rows.length;i++){
-            if(user_id === rows[i].user_id){
-                console.log("싯파")
-                res.json({message : '400 Bad Request'}) 
-             // return res.redirect('/signup');   //get 방식으로 가져와버림.         
-             }
-         }
-        }catch(err){
-          throw err;                          
-        }
-    });
-    //회원가입
-    const query = connection.query('insert into users set ?',sql,(err,rows)=>{
-        if(err){
-            throw err;
+    const selectQuery = connection.query('select user_id from users where user_id=?',[user_id],(err,rows)=>{
+        console.log(rows);
+        if(rows.length == 0){
+            const query = connection.query('insert into users set ?',sql,(err,rows)=>{
+                if(err){
+                    throw err;
+                }else{
+                    res.json({message : '200 OK'})   //프론트로 뿌려줌.
+                }
+            });
         }else{
-            res.json({message : '200 OK'})   //프론트로 뿌려줌.
+            res.json({message : '400 Bad Request'}); 
         }
-    });   
+    });     
 })
+
+//로그인
+
+app.post('/login',(req,res)=>{
+    const body=req.body; 
+    const user_id = body.user_id;
+    const user_pw = body.user_pw;
+
+   
+    crypto.DEFAULT_ENCODING = 'hex';
+    //id중복조회 후 없으면 삽입.
+        const selectQuery = connection.query('select user_id,user_pw from users where user_id=?',[user_id],(err,rows)=>{
+        if(err) throw err;
+        
+        if(!rows[0]){  
+            console.log("클라이언트 전달")
+            return res.json({message : 'not exist id',status: 500});
+        }
+
+
+        // 동작을 안한다.
+        //  crypto.pbkdf2Sync(user_pw, 'salt', 100000, 64, 'sha512',function(err,derivedKey){
+        //     console.log("1111")
+        //     if(err) throw err;
+        //     if(derivedKey.toSrting('hex') === rows[0].user_pw){
+        //         return res.json({message:'login success!', status:200})
+        //     }
+        // })
+       
+    });    
+
+})
+
+
+//트윗
+
 
 app.listen(9000,()=>{
     console.log("서버가 열렸습니다 : 연결완료 9000포트!");
