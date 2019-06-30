@@ -4,14 +4,12 @@ const bodyParser = require('body-parser');
 const mysql = require('mysql');
 const cors = require('cors');  //npm install cors
 const crypto = require('crypto'); //암호화 내장모듈
-const bkfd2Pw = require('pbkdf2-password');
-const hash = bkfd2Pw();
 
 const connection = mysql.createConnection({
     host : 'localhost',
     port : 3306,
     user : 'root',
-    password : '!Rmfltmeh1',
+    password : '!Qwer4321',  //비밀번호는 알아서! 
     database : 'miniter_db',
 })
 
@@ -37,7 +35,7 @@ app.post('/signup', (req,res)=>{
     const user_profile = body.profile;
     
     //암호화
-    const key = crypto.pbkdf2Sync(user_pw, 'salt', 100000, 64, 'sha512');
+    const key = crypto.pbkdf2Sync(user_pw, 'salt', 100000, 64, 'sha512').toString('hex');
 
     //escape 문법
     const sql ={user_id:user_id,user_pw:key, user_name:user_name,user_profile:user_profile};
@@ -59,36 +57,28 @@ app.post('/signup', (req,res)=>{
     });     
 })
 
-//로그인
-
+//로그인 (passport없이 구현)
 app.post('/login',(req,res)=>{
     const body=req.body; 
     const user_id = body.user_id;
-    const user_pw = body.user_pw;
-
-   
-    crypto.DEFAULT_ENCODING = 'hex';
-    //id중복조회 후 없으면 삽입.
+    const user_pw = body.user_pw;   
+  
+    //id중복조회 
         const selectQuery = connection.query('select user_id,user_pw from users where user_id=?',[user_id],(err,rows)=>{
-        if(err) throw err;
-        
-        if(!rows[0]){  
-            console.log("클라이언트 전달")
-            return res.json({message : 'not exist id',status: 500});
-        }
+            if(err) throw err;
+            
+            if(!rows[0]){  
+                console.log("클라이언트 전달")
+                return res.json({message : 'not exist id',status: 500});
+            }
 
-
-        // 동작을 안한다.
-        //  crypto.pbkdf2Sync(user_pw, 'salt', 100000, 64, 'sha512',function(err,derivedKey){
-        //     console.log("1111")
-        //     if(err) throw err;
-        //     if(derivedKey.toSrting('hex') === rows[0].user_pw){
-        //         return res.json({message:'login success!', status:200})
-        //     }
-        // })
-       
-    });    
-
+             const key = crypto.pbkdf2Sync(user_pw, 'salt', 100000, 64, 'sha512').toString('hex');
+             if(key === rows[0].user_pw){
+                 return res.json({message : 'login success!', status : 200});
+             }else{
+                 return res.json({message : 'login failed!', status : 500});
+             }       
+        });    
 })
 
 
